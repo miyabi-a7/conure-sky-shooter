@@ -35,6 +35,14 @@ const state = {
   enemyShots: [],
   sparks: [],
   keys: new Set(),
+  touch: {
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    playerStartX: 0,
+    playerStartY: 0,
+  },
   player: {
     x: 145,
     y: 270,
@@ -640,12 +648,38 @@ function loop() {
   render();
 }
 
-function setPlayerFromPointer(event) {
+function canvasPoint(event) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  state.player.x = (event.clientX - rect.left) * scaleX;
-  state.player.y = (event.clientY - rect.top) * scaleY;
+  return {
+    x: (event.clientX - rect.left) * (canvas.width / rect.width),
+    y: (event.clientY - rect.top) * (canvas.height / rect.height),
+  };
+}
+
+function beginTouchControl(event) {
+  const point = canvasPoint(event);
+  state.touch.active = true;
+  state.touch.pointerId = event.pointerId;
+  state.touch.startX = point.x;
+  state.touch.startY = point.y;
+  state.touch.playerStartX = state.player.x;
+  state.touch.playerStartY = state.player.y;
+}
+
+function movePlayerFromTouch(event) {
+  if (!state.touch.active || event.pointerId !== state.touch.pointerId) return;
+  const point = canvasPoint(event);
+  const sensitivity = 1.08;
+  state.player.x = state.touch.playerStartX + (point.x - state.touch.startX) * sensitivity;
+  state.player.y = state.touch.playerStartY + (point.y - state.touch.startY) * sensitivity;
+  state.player.x = Math.max(48, Math.min(canvas.width * 0.62, state.player.x));
+  state.player.y = Math.max(52, Math.min(canvas.height - 52, state.player.y));
+}
+
+function endTouchControl(event) {
+  if (event.pointerId !== state.touch.pointerId) return;
+  state.touch.active = false;
+  state.touch.pointerId = null;
 }
 
 startButton.addEventListener("click", resetGame);
@@ -676,12 +710,15 @@ window.addEventListener("keyup", (event) => {
 canvas.addEventListener("pointerdown", (event) => {
   canvas.setPointerCapture(event.pointerId);
   if (!state.running) resetGame();
-  setPlayerFromPointer(event);
+  beginTouchControl(event);
 });
 
 canvas.addEventListener("pointermove", (event) => {
-  if (event.buttons) setPlayerFromPointer(event);
+  if (event.buttons) movePlayerFromTouch(event);
 });
+
+canvas.addEventListener("pointerup", endTouchControl);
+canvas.addEventListener("pointercancel", endTouchControl);
 
 render();
 setInterval(loop, 1000 / 60);
