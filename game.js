@@ -26,7 +26,7 @@ const state = {
   lastTime: 0,
   scroll: 0,
   foodTimer: 1.1,
-  enemyTimer: 0.35,
+  enemyTimer: 1.1,
   shootTimer: 0,
   items: [],
   powerups: [],
@@ -67,7 +67,7 @@ function resetGame() {
   state.lives = 3;
   state.scroll = 0;
   state.foodTimer = 1.1;
-  state.enemyTimer = 0.25;
+  state.enemyTimer = 1.1;
   state.shootTimer = 0;
   state.items = [];
   state.powerups = [];
@@ -131,6 +131,7 @@ function spawnFood() {
 }
 
 function spawnEnemy() {
+  const difficulty = getDifficulty();
   const heavy = Math.random() < 0.22;
   state.enemies.push({
     x: canvas.width + 58,
@@ -138,8 +139,8 @@ function spawnEnemy() {
     r: heavy ? 33 : 27,
     hp: heavy ? 5 : 3,
     maxHp: heavy ? 5 : 3,
-    vx: heavy ? rand(135, 185) : rand(185, 265),
-    shootTimer: rand(0.35, 1.05),
+    vx: (heavy ? rand(125, 165) : rand(155, 220)) + difficulty * 40,
+    shootTimer: rand(1.25, 2.35) - difficulty * 0.55,
     flap: rand(0, Math.PI * 2),
     phase: rand(0, Math.PI * 2),
     heavy,
@@ -181,10 +182,11 @@ function firePlayerShots() {
 }
 
 function fireEnemyShot(enemy) {
+  const difficulty = getDifficulty();
   const dx = state.player.x - enemy.x;
   const dy = state.player.y - enemy.y;
   const length = Math.hypot(dx, dy) || 1;
-  const speed = enemy.heavy ? 235 : 270;
+  const speed = (enemy.heavy ? 190 : 215) + difficulty * 105;
   state.enemyShots.push({
     x: enemy.x - 30,
     y: enemy.y + 4,
@@ -212,6 +214,10 @@ function movePlayer(dt) {
   state.player.y = Math.max(52, Math.min(canvas.height - 52, state.player.y));
   state.player.wing += dt * (state.running && !state.paused ? 13 : 4);
   state.player.invincible = Math.max(0, state.player.invincible - dt);
+}
+
+function getDifficulty() {
+  return Math.min(1, state.score / 120);
 }
 
 function distance(a, b) {
@@ -261,7 +267,8 @@ function update(dt) {
 
   if (state.enemyTimer <= 0) {
     spawnEnemy();
-    state.enemyTimer = Math.max(0.28, rand(0.48, 0.92) - state.score * 0.0018);
+    const difficulty = getDifficulty();
+    state.enemyTimer = Math.max(0.34, rand(1.15, 1.85) - difficulty * 0.95);
   }
 
   if (state.shootTimer <= 0) {
@@ -299,7 +306,10 @@ function update(dt) {
     enemy.shootTimer -= dt;
     if (enemy.shootTimer <= 0 && enemy.x < canvas.width - 50) {
       fireEnemyShot(enemy);
-      enemy.shootTimer = enemy.heavy ? rand(0.8, 1.25) : rand(1.0, 1.65);
+      const difficulty = getDifficulty();
+      enemy.shootTimer = enemy.heavy
+        ? rand(1.35, 2.1) - difficulty * 0.65
+        : rand(1.65, 2.65) - difficulty * 0.9;
     }
   }
 
@@ -528,38 +538,38 @@ function drawConure(x, y, options = {}) {
   ctx.globalAlpha = invincibleFlash ? 0.46 : alpha;
 
   if (moon) {
-    ctx.fillStyle = "#8ecfb7";
+    ctx.fillStyle = "#d7ed95";
     ctx.beginPath();
     ctx.ellipse(0, 4, 31, 24, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#6fbebf";
+    ctx.fillStyle = "#c9e885";
     ctx.beginPath();
     ctx.moveTo(-5, 5);
     ctx.quadraticCurveTo(-38, -24 - flap, -68, 0);
     ctx.quadraticCurveTo(-34, 18, -4, 18);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#f3ead7";
+    ctx.fillStyle = "#fff5cd";
     ctx.beginPath();
     ctx.arc(21, -9, 18, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#ddb58a";
+    ctx.fillStyle = "#ffe8a6";
     ctx.beginPath();
     ctx.ellipse(14, 12, 12, 8, 0.2, 0, Math.PI * 2);
     ctx.fill();
   } else {
-    ctx.fillStyle = "#ffd85a";
+    ctx.fillStyle = "#ffe46e";
     ctx.beginPath();
     ctx.ellipse(0, 4, 30, 23, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#ff9b3d";
+    ctx.fillStyle = "#ffb15e";
     ctx.beginPath();
     ctx.moveTo(-5, 5);
     ctx.quadraticCurveTo(-36, -22 - flap, -64, 0);
     ctx.quadraticCurveTo(-32, 17, -4, 18);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#ff6b45";
+    ctx.fillStyle = "#ff8a6a";
     ctx.beginPath();
     ctx.arc(21, -8, 17, 0, Math.PI * 2);
     ctx.fill();
@@ -582,7 +592,7 @@ function drawConure(x, y, options = {}) {
   ctx.arc(32, -14, 2.2, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = moon ? "#6d8fd7" : "#3fb36f";
+  ctx.fillStyle = moon ? "#b9dc78" : "#8edb72";
   ctx.beginPath();
   ctx.moveTo(-24, 2);
   ctx.quadraticCurveTo(-49, 16, -75, 8);
