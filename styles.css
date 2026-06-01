@@ -1,0 +1,128 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #17222a;
+  color: #fff9ea;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(109, 213, 237, 0.2), transparent 30%),
+    radial-gradient(circle at 82% 16%, rgba(250, 204, 92, 0.18), transparent 27%),
+    linear-gradient(135deg, #17222a 0%, #21313b 48%, #111820 100%);
+}
+
+.game-shell {
+  width: min(960px, calc(100vw - 28px));
+  display: grid;
+  gap: 14px;
+}
+
+.hud,
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud {
+  padding: 10px 2px 0;
+}
+
+.hud div {
+  min-width: 84px;
+}
+
+.label {
+  display: block;
+  color: #abc1c8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+strong {
+  display: block;
+  color: #ffd767;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1;
+}
+
+canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: #87c9df;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.38);
+  touch-action: none;
+}
+
+.controls {
+  min-height: 48px;
+}
+
+button {
+  min-width: 92px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  color: #17222a;
+  background: #ffd767;
+  font: 800 15px/1 "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.06);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+#pauseButton {
+  color: #fff9ea;
+  background: #2c3f48;
+}
+
+.controls p {
+  margin: 0 0 0 auto;
+  color: #abc1c8;
+  font-size: 14px;
+}
+
+@media (max-width: 620px) {
+  body {
+    align-items: start;
+    padding-top: 18px;
+  }
+
+  .hud {
+    gap: 8px;
+  }
+
+  .hud div {
+    min-width: 0;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .controls p {
+    grid-column: 1 / -1;
+    margin: 0;
+    text-align: center;
+  }
+}

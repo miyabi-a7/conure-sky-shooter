@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conure Sky Shooter</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game-shell">
+    <section class="hud" aria-label="score board">
+      <div>
+        <span class="label">SCORE</span>
+        <strong id="score">0</strong>
+      </div>
+      <div>
+        <span class="label">BEST</span>
+        <strong id="best">0</strong>
+      </div>
+      <div>
+        <span class="label">SHOT</span>
+        <strong id="power">0</strong>
+      </div>
+      <div>
+        <span class="label">ALLY</span>
+        <strong id="ally">0</strong>
+      </div>
+      <div>
+        <span class="label">TIME/LIFE</span>
+        <strong id="time">60</strong>
+      </div>
+    </section>
+
+    <canvas id="game" width="960" height="540" aria-label="Conure Sky Dash game area"></canvas>
+
+    <section class="controls">
+      <button id="startButton" type="button">Start</button>
+      <button id="pauseButton" type="button" aria-pressed="false">Pause</button>
+      <p>Move: Arrow keys / WASD / Drag - Auto shot</p>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
