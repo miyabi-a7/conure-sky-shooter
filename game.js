@@ -50,7 +50,7 @@ const state = {
   lastTime: 0,
   scroll: 0,
   foodTimer: 1.1,
-  enemyTimer: 1.1,
+  enemyTimer: 0.72,
   shootTimer: 0,
   items: [],
   powerups: [],
@@ -92,7 +92,7 @@ function resetGame() {
   state.lives = 3;
   state.scroll = 0;
   state.foodTimer = 1.1;
-  state.enemyTimer = 1.1;
+  state.enemyTimer = 0.72;
   state.shootTimer = 0;
   state.items = [];
   state.powerups = [];
@@ -176,9 +176,12 @@ function spawnFood() {
 function spawnEnemy() {
   const difficulty = getDifficulty();
   const heavy = Math.random() < 0.18 + difficulty * 0.16;
+  const aimedLane = Math.random() < 0.56;
   state.enemies.push({
     x: canvas.width + 58,
-    y: rand(66, canvas.height - 90),
+    y: aimedLane
+      ? Math.max(66, Math.min(canvas.height - 90, state.player.y + rand(-86, 86)))
+      : rand(66, canvas.height - 90),
     r: heavy ? 33 : 27,
     hp: heavy ? 5 : 3,
     maxHp: heavy ? 5 : 3,
@@ -314,7 +317,7 @@ function update(dt) {
     spawnEnemy();
     if (state.extraStage && Math.random() < 0.45) spawnEnemy();
     const difficulty = getDifficulty();
-    state.enemyTimer = Math.max(0.34, rand(1.15, 1.85) - difficulty * 0.95);
+    state.enemyTimer = Math.max(0.24, rand(0.58, 0.98) - difficulty * 0.52);
   }
 
   if (state.shootTimer <= 0) {
@@ -369,7 +372,7 @@ function update(dt) {
         addSparks(shot.x, shot.y, "#fff16f", 4);
         if (enemy.hp <= 0) {
           enemy.dead = true;
-          addScore(enemy.heavy ? 12 : 7);
+          addScore(enemy.heavy ? 30 : 18);
           addSparks(enemy.x, enemy.y, "#2b2e34", 20);
           spawnPowerup(enemy.x, enemy.y);
         }
