@@ -372,7 +372,7 @@ function update(dt) {
         addSparks(shot.x, shot.y, "#fff16f", 4);
         if (enemy.hp <= 0) {
           enemy.dead = true;
-          addScore(enemy.heavy ? 30 : 18);
+          addScore(enemy.heavy ? 42 : 26);
           addSparks(enemy.x, enemy.y, "#2b2e34", 20);
           spawnPowerup(enemy.x, enemy.y);
         }
@@ -665,7 +665,7 @@ function drawBudgie(x, y, options = {}) {
   ctx.scale(scale, scale);
   ctx.globalAlpha = invincibleFlash ? 0.46 : alpha;
 
-  ctx.fillStyle = rainbow ? "#9ee7c5" : "#8fd8f1";
+  ctx.fillStyle = rainbow ? "#f7fbff" : "#8fd8f1";
   ctx.beginPath();
   ctx.ellipse(0, 6, 28, 23, -0.06, 0, Math.PI * 2);
   ctx.fill();
@@ -675,7 +675,7 @@ function drawBudgie(x, y, options = {}) {
   ctx.arc(20, -9, 17, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = rainbow ? "#62d3d7" : "#66c6e9";
+  ctx.fillStyle = rainbow ? "#f0f7ff" : "#66c6e9";
   ctx.beginPath();
   ctx.moveTo(-4, 5);
   ctx.quadraticCurveTo(-36, -21 - flap, -63, 3);
@@ -683,7 +683,7 @@ function drawBudgie(x, y, options = {}) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.strokeStyle = rainbow ? "#a7bf5a" : "#5d8fb3";
+  ctx.strokeStyle = rainbow ? "#8bbce0" : "#5d8fb3";
   ctx.lineWidth = 2;
   for (let i = 0; i < 4; i += 1) {
     ctx.beginPath();
@@ -691,7 +691,7 @@ function drawBudgie(x, y, options = {}) {
     ctx.stroke();
   }
 
-  ctx.fillStyle = rainbow ? "#6bd76a" : "#5fb8e6";
+  ctx.fillStyle = rainbow ? "#dff6ff" : "#5fb8e6";
   ctx.beginPath();
   ctx.moveTo(-22, 8);
   ctx.quadraticCurveTo(-56, 20, -78, 13);
@@ -716,7 +716,7 @@ function drawBudgie(x, y, options = {}) {
   ctx.arc(31, -14, 2.1, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = rainbow ? "#79d2ff" : "#bfefff";
+  ctx.fillStyle = rainbow ? "#7bd8ff" : "#bfefff";
   ctx.beginPath();
   ctx.ellipse(5, 11, 12, 8, 0.1, 0, Math.PI * 2);
   ctx.fill();
