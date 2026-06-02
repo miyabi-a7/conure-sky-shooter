@@ -405,6 +405,8 @@ function damageBoss(shot) {
     return true;
   }
 
+  if (boss.phase === "body") return false;
+
   addSparks(shot.x, shot.y, "#7c8791", 3);
   return true;
 }
@@ -1044,6 +1046,18 @@ function drawMechaCrowBoss() {
     ctx.moveTo(-156, -18);
     ctx.lineTo(-104, 20);
     ctx.stroke();
+
+    ctx.shadowColor = "#f15d64";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = "#f15d64";
+    ctx.beginPath();
+    ctx.arc(-18, 0, 30 + Math.sin(boss.bob * 4) * 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#fff1f2";
+    ctx.beginPath();
+    ctx.arc(-18, 0, 11, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 
