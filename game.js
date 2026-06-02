@@ -43,6 +43,9 @@ const state = {
   over: false,
   selectedCharacter: "conure",
   extraStage: false,
+  boss: null,
+  bossDefeats: 0,
+  nextBossScore: 10000,
   score: 0,
   best: Number(localStorage.getItem("conure-sky-best") || 0),
   timeLeft: 90,
@@ -87,6 +90,9 @@ function resetGame() {
   state.paused = false;
   state.over = false;
   state.extraStage = false;
+  state.boss = null;
+  state.bossDefeats = 0;
+  state.nextBossScore = 10000;
   state.score = 0;
   state.timeLeft = 90;
   state.lives = 3;
@@ -118,7 +124,8 @@ function updateHud() {
   bestEl.textContent = state.best;
   shotEl.textContent = state.player.shotLevel;
   allyEl.textContent = state.player.allies;
-  timeEl.textContent = `${state.extraStage ? "EX " : ""}${Math.ceil(Math.max(0, state.timeLeft))}/${state.lives}`;
+  const mode = state.boss ? "BOSS " : state.extraStage ? "EX " : "";
+  timeEl.textContent = `${mode}${Math.ceil(Math.max(0, state.timeLeft))}/${state.lives}`;
 }
 
 function currentCharacter() {
@@ -137,6 +144,45 @@ function addScore(points) {
     state.timeLeft += 60;
     addSparks(canvas.width / 2, canvas.height / 2, "#fff16f", 48);
   }
+  if (!state.boss && state.score >= state.nextBossScore) {
+    triggerBoss();
+  }
+}
+
+function nextBossScoreAfter(score) {
+  if (score < 25000) return 25000;
+  return score + 10000;
+}
+
+function triggerBoss() {
+  state.boss = {
+    x: canvas.width + 190,
+    y: canvas.height / 2,
+    targetX: canvas.width - 210,
+    baseY: canvas.height / 2,
+    phase: "wings",
+    wingHp: 260 + state.bossDefeats * 90,
+    beakHp: 190 + state.bossDefeats * 70,
+    bodyHp: 430 + state.bossDefeats * 150,
+    shootTimer: 1.15,
+    burstTimer: 2.4,
+    phaseTimer: 0,
+    bob: 0,
+  };
+  state.enemies = [];
+  state.enemyShots = [];
+  state.items = [];
+  addSparks(canvas.width - 180, canvas.height / 2, "#8bd3ff", 60);
+}
+
+function defeatBoss() {
+  const boss = state.boss;
+  state.boss = null;
+  state.bossDefeats += 1;
+  state.nextBossScore = nextBossScoreAfter(state.nextBossScore);
+  if (state.bossDefeats > 1) state.timeLeft += 60;
+  state.score += 900 + state.bossDefeats * 250;
+  burstFruits(boss.x - 70, boss.y);
 }
 
 function rand(min, max) {
@@ -171,6 +217,23 @@ function spawnFood() {
     vx: rand(170, 220),
     bob: rand(0, Math.PI * 2),
   });
+}
+
+function burstFruits(x, y) {
+  for (let i = 0; i < 34; i += 1) {
+    const food = choose(FOODS);
+    state.items.push({
+      ...food,
+      points: food.points * 12,
+      x: x + rand(-45, 45),
+      y: y + rand(-80, 80),
+      r: 16,
+      vx: rand(45, 135),
+      vy: rand(-180, 180),
+      bob: rand(0, Math.PI * 2),
+      fruitBurst: true,
+    });
+  }
 }
 
 function spawnEnemy() {
@@ -243,6 +306,109 @@ function fireEnemyShot(enemy) {
   });
 }
 
+function fireBossShot() {
+  const boss = state.boss;
+  if (!boss) return;
+  const power = boss.phase === "wings" ? 1.25 : boss.phase === "beak" ? 1.55 : 1.8;
+  const spread = boss.phase === "body" ? [-0.26, -0.12, 0, 0.12, 0.26] : [-0.16, 0, 0.16];
+  for (const angleOffset of spread) {
+    const dx = state.player.x - (boss.x - 116);
+    const dy = state.player.y - boss.y;
+    const base = Math.atan2(dy, dx) + angleOffset;
+    const speed = 270 * power;
+    state.enemyShots.push({
+      x: boss.x - 116,
+      y: boss.y,
+      r: boss.phase === "body" ? 9 : 7,
+      vx: Math.cos(base) * speed,
+      vy: Math.sin(base) * speed,
+      bossShot: true,
+    });
+  }
+}
+
+function fireBossBurst() {
+  const boss = state.boss;
+  if (!boss) return;
+  const count = boss.phase === "body" ? 16 : 10;
+  for (let i = 0; i < count; i += 1) {
+    const angle = Math.PI + (Math.PI * 2 * i) / count;
+    const speed = rand(145, boss.phase === "body" ? 260 : 210);
+    state.enemyShots.push({
+      x: boss.x - 35,
+      y: boss.y,
+      r: 6,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      bossShot: true,
+    });
+  }
+}
+
+function updateBoss(dt) {
+  const boss = state.boss;
+  if (!boss) return;
+  boss.bob += dt * 2.2;
+  boss.phaseTimer += dt;
+  boss.x += (boss.targetX - boss.x) * Math.min(1, dt * 1.7);
+  boss.y = boss.baseY + Math.sin(boss.bob) * 48;
+  boss.shootTimer -= dt;
+  boss.burstTimer -= dt;
+
+  if (boss.shootTimer <= 0) {
+    fireBossShot();
+    boss.shootTimer = boss.phase === "body" ? rand(0.36, 0.62) : boss.phase === "beak" ? rand(0.5, 0.82) : rand(0.75, 1.05);
+  }
+  if (boss.burstTimer <= 0) {
+    fireBossBurst();
+    boss.burstTimer = boss.phase === "body" ? rand(1.35, 1.8) : rand(2.0, 2.7);
+  }
+}
+
+function damageBoss(shot) {
+  const boss = state.boss;
+  if (!boss) return false;
+  const wingHits = [
+    { x: boss.x - 20, y: boss.y - 90, r: 82 },
+    { x: boss.x - 20, y: boss.y + 90, r: 82 },
+  ];
+  const beak = { x: boss.x - 135, y: boss.y, r: 48 };
+  const body = { x: boss.x, y: boss.y, r: 92 };
+  const hitWing = wingHits.some((part) => distance(shot, part) < shot.r + part.r);
+  const hitBeak = distance(shot, beak) < shot.r + beak.r;
+  const hitBody = distance(shot, body) < shot.r + body.r;
+
+  if (!hitWing && !hitBeak && !hitBody) return false;
+
+  if (boss.phase === "wings" && hitWing) {
+    boss.wingHp -= shot.damage;
+    addSparks(shot.x, shot.y, "#8bd3ff", 5);
+    if (boss.wingHp <= 0) {
+      boss.phase = "beak";
+      addSparks(boss.x - 20, boss.y, "#8bd3ff", 50);
+    }
+    return true;
+  }
+  if (boss.phase === "beak" && hitBeak) {
+    boss.beakHp -= shot.damage;
+    addSparks(shot.x, shot.y, "#ffd36b", 5);
+    if (boss.beakHp <= 0) {
+      boss.phase = "body";
+      addSparks(boss.x - 124, boss.y, "#ffd36b", 48);
+    }
+    return true;
+  }
+  if (boss.phase === "body" && hitBody) {
+    boss.bodyHp -= shot.damage;
+    addSparks(shot.x, shot.y, "#f06b6b", 6);
+    if (boss.bodyHp <= 0) defeatBoss();
+    return true;
+  }
+
+  addSparks(shot.x, shot.y, "#7c8791", 3);
+  return true;
+}
+
 function movePlayer(dt) {
   let dx = 0;
   let dy = 0;
@@ -302,18 +468,19 @@ function damagePlayer(x, y) {
 function update(dt) {
   if (!state.running || state.paused || state.over) return;
 
-  state.timeLeft -= dt;
+  const bossActive = Boolean(state.boss);
+  if (!bossActive) state.timeLeft -= dt;
   state.scroll += dt * 160;
   state.foodTimer -= dt;
   state.enemyTimer -= dt;
   state.shootTimer -= dt;
 
-  if (state.foodTimer <= 0) {
+  if (!bossActive && state.foodTimer <= 0) {
     spawnFood();
     state.foodTimer = rand(1.35, 2.25);
   }
 
-  if (state.enemyTimer <= 0) {
+  if (!bossActive && state.enemyTimer <= 0) {
     spawnEnemy();
     if (state.extraStage && Math.random() < 0.45) spawnEnemy();
     const difficulty = getDifficulty();
@@ -327,9 +494,14 @@ function update(dt) {
   }
 
   movePlayer(dt);
+  updateBoss(dt);
 
   for (const item of state.items) {
     item.x -= item.vx * dt;
+    if (item.fruitBurst) {
+      item.y += item.vy * dt;
+      item.vy *= 0.992;
+    }
     item.y += Math.sin(item.bob + state.scroll * 0.035) * 0.35;
   }
 
@@ -364,6 +536,10 @@ function update(dt) {
   }
 
   for (const shot of state.playerShots) {
+    if (damageBoss(shot)) {
+      shot.hit = true;
+      continue;
+    }
     for (const enemy of state.enemies) {
       if (shot.hit || enemy.dead) continue;
       if (distance(shot, enemy) < shot.r + enemy.r * 0.75) {
@@ -406,6 +582,10 @@ function update(dt) {
     }
     return true;
   });
+
+  if (state.boss && distance(state.boss, state.player) < 112 + state.player.r) {
+    damagePlayer(state.player.x, state.player.y);
+  }
 
   state.enemies = state.enemies.filter((enemy) => {
     if (enemy.dead || enemy.x < -80) return false;
@@ -782,6 +962,124 @@ function drawExtraStageBadge() {
   ctx.restore();
 }
 
+function drawMechaCrowBoss() {
+  const boss = state.boss;
+  if (!boss) return;
+  ctx.save();
+  ctx.translate(boss.x, boss.y);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#10151a";
+
+  ctx.fillStyle = boss.phase === "wings" ? "#66717d" : "#2f363d";
+  ctx.beginPath();
+  ctx.moveTo(-10, -42);
+  ctx.lineTo(-120, -150);
+  ctx.lineTo(-82, -38);
+  ctx.lineTo(-22, -10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-10, 42);
+  ctx.lineTo(-120, 150);
+  ctx.lineTo(-82, 38);
+  ctx.lineTo(-22, 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#3a424a";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 108, 76, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#252b31";
+  ctx.beginPath();
+  ctx.ellipse(58, 0, 54, 48, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = boss.phase === "beak" ? "#f0a536" : "#d18426";
+  ctx.beginPath();
+  ctx.moveTo(-92, -26);
+  ctx.lineTo(-170, 0);
+  ctx.lineTo(-92, 28);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#faefe7";
+  ctx.beginPath();
+  ctx.arc(-42, -30, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#f0414c";
+  ctx.beginPath();
+  ctx.arc(-45, -30, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#8bd3ff";
+  ctx.lineWidth = 3;
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(-20 + i * 22, -56);
+    ctx.lineTo(-8 + i * 22, 58);
+    ctx.stroke();
+  }
+
+  if (boss.phase !== "wings") {
+    ctx.strokeStyle = "#f06b6b";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(-118, -142);
+    ctx.lineTo(-76, -40);
+    ctx.moveTo(-118, 142);
+    ctx.lineTo(-76, 40);
+    ctx.stroke();
+  }
+  if (boss.phase === "body") {
+    ctx.strokeStyle = "#2b2e34";
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(-156, -18);
+    ctx.lineTo(-104, 20);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  drawBossHp();
+}
+
+function drawBossHp() {
+  const boss = state.boss;
+  if (!boss) return;
+  const hp = boss.phase === "wings" ? boss.wingHp : boss.phase === "beak" ? boss.beakHp : boss.bodyHp;
+  const max = boss.phase === "wings"
+    ? 260 + state.bossDefeats * 90
+    : boss.phase === "beak"
+      ? 190 + state.bossDefeats * 70
+      : 430 + state.bossDefeats * 150;
+  const label = boss.phase === "wings" ? "BREAK WINGS" : boss.phase === "beak" ? "BREAK BEAK" : "DESTROY CORE";
+  const x = 250;
+  const y = 18;
+  const w = 360;
+  const h = 18;
+  ctx.save();
+  ctx.fillStyle = "rgba(23, 34, 42, 0.76)";
+  ctx.fillRect(x - 12, y - 8, w + 24, 48);
+  ctx.fillStyle = "#fff9ea";
+  ctx.font = "900 14px Segoe UI, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(label, x, y + 2);
+  ctx.fillStyle = "#151b22";
+  ctx.fillRect(x, y + 12, w, h);
+  ctx.fillStyle = boss.phase === "wings" ? "#8bd3ff" : boss.phase === "beak" ? "#ffd36b" : "#f06b6b";
+  ctx.fillRect(x, y + 12, w * Math.max(0, hp / max), h);
+  ctx.strokeStyle = "#fff9ea";
+  ctx.strokeRect(x, y + 12, w, h);
+  ctx.restore();
+}
+
 function render() {
   drawBackground();
   for (const item of state.items) drawFood(item);
@@ -789,6 +1087,7 @@ function render() {
   for (const shot of state.playerShots) drawShot(shot, "#fff16f");
   for (const shot of state.enemyShots) drawShot(shot, "#e5494f");
   for (const enemy of state.enemies) drawCrow(enemy);
+  drawMechaCrowBoss();
   drawSparks();
   drawAllies();
   drawPlayerBird();
