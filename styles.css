@@ -29,6 +29,7 @@ body {
 }
 
 .hud,
+.character-select,
 .controls {
   display: flex;
   align-items: center;
@@ -60,7 +61,7 @@ strong {
 
 canvas {
   width: 100%;
-  max-height: calc(100dvh - 164px);
+  max-height: calc(100dvh - 220px);
   aspect-ratio: 16 / 9;
   display: block;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -98,6 +99,46 @@ button:active {
   background: #2c3f48;
 }
 
+.character-select {
+  min-height: 50px;
+}
+
+.character-card {
+  flex: 1;
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff9ea;
+  background: #263941;
+}
+
+.character-card span,
+.character-card small {
+  display: block;
+}
+
+.character-card span {
+  font-size: 14px;
+}
+
+.character-card small {
+  color: #b8c9cf;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.character-card.selected {
+  color: #17222a;
+  background: #d7ed95;
+  border-color: #fff5cd;
+}
+
+.character-card.selected small {
+  color: #43534b;
+}
+
 .controls p {
   margin: 0 0 0 auto;
   color: #abc1c8;
@@ -126,6 +167,7 @@ button:active {
     font-size: clamp(22px, 7vw, 32px);
   }
 
+  .character-select,
   .controls {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -172,15 +214,20 @@ button:active {
 
   canvas {
     width: auto;
-    height: calc(100dvh - 76px);
+    height: calc(100dvh - 108px);
     max-width: 100%;
-    max-height: calc(100dvh - 76px);
+    max-height: calc(100dvh - 108px);
     justify-self: center;
     box-shadow: 0 12px 34px rgba(0, 0, 0, 0.3);
   }
 
   .controls {
     min-height: 30px;
+    gap: 6px;
+  }
+
+  .character-select {
+    min-height: 28px;
     gap: 6px;
   }
 
@@ -193,6 +240,19 @@ button:active {
 
   .controls p {
     font-size: 11px;
+  }
+
+  .character-card {
+    min-height: 28px;
+    gap: 0;
+  }
+
+  .character-card span {
+    font-size: 11px;
+  }
+
+  .character-card small {
+    display: none;
   }
 }
 
@@ -212,11 +272,12 @@ button:active {
   }
 
   canvas {
-    height: calc(100dvh - 54px);
-    max-height: calc(100dvh - 54px);
+    height: calc(100dvh - 80px);
+    max-height: calc(100dvh - 80px);
     border-radius: 6px;
   }
 
+  .character-select,
   .controls {
     min-height: 24px;
   }
@@ -229,5 +290,9 @@ button:active {
 
   .controls p {
     display: none;
+  }
+
+  .character-card {
+    min-height: 24px;
   }
 }

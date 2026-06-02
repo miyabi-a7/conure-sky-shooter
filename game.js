@@ -7,6 +7,7 @@ const allyEl = document.querySelector("#ally");
 const timeEl = document.querySelector("#time");
 const startButton = document.querySelector("#startButton");
 const pauseButton = document.querySelector("#pauseButton");
+const characterButtons = document.querySelectorAll(".character-card");
 
 const POWERUPS = ["speed", "shot", "ally"];
 const FOODS = [
@@ -15,10 +16,33 @@ const FOODS = [
   { name: "berry", color: "#7b61ff", points: 3 },
 ];
 
+const CHARACTERS = {
+  conure: {
+    name: "Mooncheek",
+    ally: "sun",
+    baseSpeed: 330,
+    speedGain: 36,
+    baseDamage: 2,
+    fireRate: 0.31,
+    shotSpeed: 610,
+  },
+  budgie: {
+    name: "Opaline Blue",
+    ally: "rainbow",
+    baseSpeed: 410,
+    speedGain: 50,
+    baseDamage: 1,
+    fireRate: 0.19,
+    shotSpeed: 650,
+  },
+};
+
 const state = {
   running: false,
   paused: false,
   over: false,
+  selectedCharacter: "conure",
+  extraStage: false,
   score: 0,
   best: Number(localStorage.getItem("conure-sky-best") || 0),
   timeLeft: 90,
@@ -47,7 +71,7 @@ const state = {
     x: 145,
     y: 270,
     r: 27,
-    speed: 350,
+    speed: 330,
     speedLevel: 0,
     shotLevel: 1,
     allies: 0,
@@ -62,6 +86,7 @@ function resetGame() {
   state.running = true;
   state.paused = false;
   state.over = false;
+  state.extraStage = false;
   state.score = 0;
   state.timeLeft = 90;
   state.lives = 3;
@@ -77,10 +102,10 @@ function resetGame() {
   state.sparks = [];
   state.player.x = 145;
   state.player.y = canvas.height / 2;
-  state.player.speed = 350;
   state.player.speedLevel = 0;
   state.player.shotLevel = 1;
   state.player.allies = 0;
+  applyCharacterStats();
   state.player.invincible = 1.4;
   state.lastTime = performance.now();
   pauseButton.textContent = "Pause";
@@ -93,7 +118,25 @@ function updateHud() {
   bestEl.textContent = state.best;
   shotEl.textContent = state.player.shotLevel;
   allyEl.textContent = state.player.allies;
-  timeEl.textContent = `${Math.ceil(Math.max(0, state.timeLeft))}/${state.lives}`;
+  timeEl.textContent = `${state.extraStage ? "EX " : ""}${Math.ceil(Math.max(0, state.timeLeft))}/${state.lives}`;
+}
+
+function currentCharacter() {
+  return CHARACTERS[state.selectedCharacter];
+}
+
+function applyCharacterStats() {
+  const character = currentCharacter();
+  state.player.speed = character.baseSpeed + state.player.speedLevel * character.speedGain;
+}
+
+function addScore(points) {
+  state.score += points;
+  if (!state.extraStage && state.score >= 1000) {
+    state.extraStage = true;
+    state.timeLeft += 60;
+    addSparks(canvas.width / 2, canvas.height / 2, "#fff16f", 48);
+  }
 }
 
 function rand(min, max) {
@@ -132,7 +175,7 @@ function spawnFood() {
 
 function spawnEnemy() {
   const difficulty = getDifficulty();
-  const heavy = Math.random() < 0.22;
+  const heavy = Math.random() < 0.18 + difficulty * 0.16;
   state.enemies.push({
     x: canvas.width + 58,
     y: rand(66, canvas.height - 90),
@@ -161,6 +204,7 @@ function spawnPowerup(x, y) {
 }
 
 function firePlayerShots() {
+  const character = currentCharacter();
   const level = state.player.shotLevel;
   const origins = [{ x: state.player.x + 50, y: state.player.y - 5 }];
   for (let i = 0; i < state.player.allies; i += 1) {
@@ -169,14 +213,14 @@ function firePlayerShots() {
   }
 
   for (const origin of origins) {
-    state.playerShots.push({ x: origin.x, y: origin.y, r: 6, vx: 620, vy: 0, damage: 1 });
+    state.playerShots.push({ x: origin.x, y: origin.y, r: 6, vx: character.shotSpeed, vy: 0, damage: character.baseDamage });
     if (level >= 2) {
-      state.playerShots.push({ x: origin.x, y: origin.y, r: 5, vx: 590, vy: -105, damage: 1 });
-      state.playerShots.push({ x: origin.x, y: origin.y, r: 5, vx: 590, vy: 105, damage: 1 });
+      state.playerShots.push({ x: origin.x, y: origin.y, r: 5, vx: character.shotSpeed - 30, vy: -105, damage: character.baseDamage });
+      state.playerShots.push({ x: origin.x, y: origin.y, r: 5, vx: character.shotSpeed - 30, vy: 105, damage: character.baseDamage });
     }
     if (level >= 3) {
-      state.playerShots.push({ x: origin.x - 8, y: origin.y - 12, r: 6, vx: 700, vy: 0, damage: 1 });
-      state.playerShots.push({ x: origin.x - 8, y: origin.y + 12, r: 6, vx: 700, vy: 0, damage: 1 });
+      state.playerShots.push({ x: origin.x - 8, y: origin.y - 12, r: 6, vx: character.shotSpeed + 80, vy: 0, damage: character.baseDamage });
+      state.playerShots.push({ x: origin.x - 8, y: origin.y + 12, r: 6, vx: character.shotSpeed + 80, vy: 0, damage: character.baseDamage });
     }
   }
 }
@@ -217,7 +261,8 @@ function movePlayer(dt) {
 }
 
 function getDifficulty() {
-  return Math.min(1, state.score / 120);
+  const base = Math.min(1, state.score / 900);
+  return state.extraStage ? Math.min(1.75, base + 0.65) : base;
 }
 
 function distance(a, b) {
@@ -225,14 +270,14 @@ function distance(a, b) {
 }
 
 function collectFood(item) {
-  state.score += item.points;
+  addScore(item.points);
   addSparks(item.x, item.y, item.color, 8);
 }
 
 function collectPowerup(item) {
   if (item.type === "speed") {
     state.player.speedLevel = Math.min(3, state.player.speedLevel + 1);
-    state.player.speed = 350 + state.player.speedLevel * 45;
+    applyCharacterStats();
     addSparks(item.x, item.y, "#68d6ff", 18);
   } else if (item.type === "shot") {
     state.player.shotLevel = Math.min(3, state.player.shotLevel + 1);
@@ -267,13 +312,15 @@ function update(dt) {
 
   if (state.enemyTimer <= 0) {
     spawnEnemy();
+    if (state.extraStage && Math.random() < 0.45) spawnEnemy();
     const difficulty = getDifficulty();
     state.enemyTimer = Math.max(0.34, rand(1.15, 1.85) - difficulty * 0.95);
   }
 
   if (state.shootTimer <= 0) {
     firePlayerShots();
-    state.shootTimer = Math.max(0.12, 0.26 - state.player.shotLevel * 0.035);
+    const character = currentCharacter();
+    state.shootTimer = Math.max(0.09, character.fireRate - (state.player.shotLevel - 1) * 0.035);
   }
 
   movePlayer(dt);
@@ -322,7 +369,7 @@ function update(dt) {
         addSparks(shot.x, shot.y, "#fff16f", 4);
         if (enemy.hp <= 0) {
           enemy.dead = true;
-          state.score += enemy.heavy ? 12 : 7;
+          addScore(enemy.heavy ? 12 : 7);
           addSparks(enemy.x, enemy.y, "#2b2e34", 20);
           spawnPowerup(enemy.x, enemy.y);
         }
@@ -602,10 +649,91 @@ function drawConure(x, y, options = {}) {
   ctx.restore();
 }
 
+function drawBudgie(x, y, options = {}) {
+  const wing = options.wing ?? state.player.wing;
+  const rainbow = options.variant === "rainbow";
+  const flap = Math.sin(wing) * 14;
+  const alpha = options.alpha ?? 1;
+  const scale = options.scale ?? 1;
+  const invincibleFlash = state.player.invincible > 0 && Math.floor(state.player.invincible * 12) % 2 === 0 && !options.variant;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = invincibleFlash ? 0.46 : alpha;
+
+  ctx.fillStyle = rainbow ? "#9ee7c5" : "#8fd8f1";
+  ctx.beginPath();
+  ctx.ellipse(0, 6, 28, 23, -0.06, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = rainbow ? "#ffef7e" : "#f5fbff";
+  ctx.beginPath();
+  ctx.arc(20, -9, 17, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = rainbow ? "#62d3d7" : "#66c6e9";
+  ctx.beginPath();
+  ctx.moveTo(-4, 5);
+  ctx.quadraticCurveTo(-36, -21 - flap, -63, 3);
+  ctx.quadraticCurveTo(-32, 18, -6, 18);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = rainbow ? "#a7bf5a" : "#5d8fb3";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 4; i += 1) {
+    ctx.beginPath();
+    ctx.arc(10 + i * 5, -18 + i * 2, 10 + i * 2, 1.15, 2.35);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = rainbow ? "#6bd76a" : "#5fb8e6";
+  ctx.beginPath();
+  ctx.moveTo(-22, 8);
+  ctx.quadraticCurveTo(-56, 20, -78, 13);
+  ctx.quadraticCurveTo(-52, 34, -18, 24);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#e9b86d";
+  ctx.beginPath();
+  ctx.moveTo(38, -7);
+  ctx.lineTo(55, -1);
+  ctx.lineTo(38, 5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#fcfbf2";
+  ctx.beginPath();
+  ctx.arc(30, -14, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#17222a";
+  ctx.beginPath();
+  ctx.arc(31, -14, 2.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = rainbow ? "#79d2ff" : "#bfefff";
+  ctx.beginPath();
+  ctx.ellipse(5, 11, 12, 8, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPlayerBird() {
+  if (state.selectedCharacter === "budgie") drawBudgie(state.player.x, state.player.y);
+  else drawConure(state.player.x, state.player.y);
+}
+
 function drawAllies() {
+  const allyVariant = currentCharacter().ally;
   for (let i = 0; i < state.player.allies; i += 1) {
     const y = state.player.y + (i === 0 ? -48 : 48);
-    drawConure(state.player.x - 34, y, { variant: "sun", wing: state.player.wing + i, scale: 0.64, alpha: 0.95 });
+    if (allyVariant === "rainbow") {
+      drawBudgie(state.player.x - 34, y, { variant: "rainbow", wing: state.player.wing + i, scale: 0.66, alpha: 0.95 });
+    } else {
+      drawConure(state.player.x - 34, y, { variant: "sun", wing: state.player.wing + i, scale: 0.64, alpha: 0.95 });
+    }
   }
 }
 
@@ -631,10 +759,24 @@ function drawMessage() {
   const title = state.over ? "Game Over" : state.paused ? "Paused" : "Conure Sky Shooter";
   ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 28);
   ctx.font = "700 19px Segoe UI, sans-serif";
+  const character = currentCharacter();
   const text = state.over
-    ? "Startでもう一度。カラスを倒して強化アイテムを集めよう"
-    : "ムーンチークで出撃。カラスを倒してサンチークの援護を呼ぼう";
+    ? "Startでもう一度。1000点突破でEXTRA STAGE"
+    : `${character.name}で出撃。カラスを倒して強化アイテムを集めよう`;
   ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 18);
+}
+
+function drawExtraStageBadge() {
+  if (!state.extraStage) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(23, 34, 42, 0.68)";
+  ctx.fillRect(canvas.width - 205, 14, 184, 38);
+  ctx.fillStyle = "#fff16f";
+  ctx.font = "900 20px Segoe UI, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("EXTRA STAGE", canvas.width - 113, 34);
+  ctx.restore();
 }
 
 function render() {
@@ -646,7 +788,8 @@ function render() {
   for (const enemy of state.enemies) drawCrow(enemy);
   drawSparks();
   drawAllies();
-  drawConure(state.player.x, state.player.y);
+  drawPlayerBird();
+  drawExtraStageBadge();
   drawMessage();
 }
 
@@ -698,6 +841,20 @@ pauseButton.addEventListener("click", () => {
   state.paused = !state.paused;
   pauseButton.textContent = state.paused ? "Resume" : "Pause";
   pauseButton.setAttribute("aria-pressed", String(state.paused));
+});
+
+characterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.selectedCharacter = button.dataset.character;
+    state.player.speedLevel = Math.min(state.player.speedLevel, 3);
+    applyCharacterStats();
+    characterButtons.forEach((candidate) => {
+      const selected = candidate === button;
+      candidate.classList.toggle("selected", selected);
+      candidate.setAttribute("aria-pressed", String(selected));
+    });
+    if (!state.running) render();
+  });
 });
 
 window.addEventListener("keydown", (event) => {
