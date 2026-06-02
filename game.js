@@ -1053,30 +1053,41 @@ function drawMechaCrowBoss() {
 function drawBossHp() {
   const boss = state.boss;
   if (!boss) return;
-  const hp = boss.phase === "wings" ? boss.wingHp : boss.phase === "beak" ? boss.beakHp : boss.bodyHp;
-  const max = boss.phase === "wings"
-    ? 260 + state.bossDefeats * 90
-    : boss.phase === "beak"
-      ? 190 + state.bossDefeats * 70
-      : 430 + state.bossDefeats * 150;
-  const label = boss.phase === "wings" ? "BREAK WINGS" : boss.phase === "beak" ? "BREAK BEAK" : "DESTROY CORE";
-  const x = 250;
-  const y = 18;
-  const w = 360;
-  const h = 18;
+  const maxWing = 260 + state.bossDefeats * 90;
+  const maxBeak = 190 + state.bossDefeats * 70;
+  const maxBody = 430 + state.bossDefeats * 150;
+  const bars = [
+    { phase: "wings", label: "1 WINGS", hp: boss.wingHp, max: maxWing, color: "#55c8ff" },
+    { phase: "beak", label: "2 BEAK", hp: boss.beakHp, max: maxBeak, color: "#ffd85a" },
+    { phase: "body", label: "3 CORE", hp: boss.bodyHp, max: maxBody, color: "#f15d64" },
+  ];
+  const x = 226;
+  const y = 12;
+  const w = 420;
+  const h = 12;
   ctx.save();
   ctx.fillStyle = "rgba(23, 34, 42, 0.76)";
-  ctx.fillRect(x - 12, y - 8, w + 24, 48);
+  ctx.fillRect(x - 12, y - 8, w + 24, 70);
   ctx.fillStyle = "#fff9ea";
-  ctx.font = "900 14px Segoe UI, sans-serif";
+  ctx.font = "900 13px Segoe UI, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(label, x, y + 2);
-  ctx.fillStyle = "#151b22";
-  ctx.fillRect(x, y + 12, w, h);
-  ctx.fillStyle = boss.phase === "wings" ? "#8bd3ff" : boss.phase === "beak" ? "#ffd36b" : "#f06b6b";
-  ctx.fillRect(x, y + 12, w * Math.max(0, hp / max), h);
-  ctx.strokeStyle = "#fff9ea";
-  ctx.strokeRect(x, y + 12, w, h);
+  ctx.fillText("MECHA CROW", x, y + 4);
+  bars.forEach((bar, index) => {
+    const rowY = y + 14 + index * 15;
+    const active = boss.phase === bar.phase;
+    const cleared = bar.hp <= 0;
+    ctx.globalAlpha = active || cleared ? 1 : 0.42;
+    ctx.fillStyle = "#151b22";
+    ctx.fillRect(x + 76, rowY, w - 76, h);
+    ctx.fillStyle = cleared ? "#3a444d" : bar.color;
+    ctx.fillRect(x + 76, rowY, (w - 76) * Math.max(0, bar.hp / bar.max), h);
+    ctx.strokeStyle = active ? "#fff9ea" : "rgba(255,249,234,0.45)";
+    ctx.strokeRect(x + 76, rowY, w - 76, h);
+    ctx.fillStyle = active ? "#fff9ea" : "#b7c5cc";
+    ctx.font = active ? "900 12px Segoe UI, sans-serif" : "800 12px Segoe UI, sans-serif";
+    ctx.fillText(cleared ? `${bar.label} OK` : bar.label, x, rowY + 10);
+  });
+  ctx.globalAlpha = 1;
   ctx.restore();
 }
 
