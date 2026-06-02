@@ -691,7 +691,7 @@ function drawBudgie(x, y, options = {}) {
     ctx.stroke();
   }
 
-  ctx.fillStyle = rainbow ? "#dff6ff" : "#5fb8e6";
+  ctx.fillStyle = rainbow ? "#f8fdff" : "#5fb8e6";
   ctx.beginPath();
   ctx.moveTo(-22, 8);
   ctx.quadraticCurveTo(-56, 20, -78, 13);
